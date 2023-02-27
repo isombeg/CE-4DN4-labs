@@ -1,6 +1,8 @@
 import socket
 import sys
-
+import csv
+import json
+from cryptography.fernet import Fernet
 ########################################################################
 # Echo Server class
 ########################################################################
@@ -31,8 +33,18 @@ class Server:
     # address/hostname and port.
     SOCKET_ADDRESS = (HOSTNAME, PORT)
 
+    # Command operations to database column mapping
+    _OPS_TO_COLUMN_NAME = {
+        "GMA": ["Midterm"],
+        "GL1A": ["Lab 1"],
+        "GL2A": ["Lab 2"],
+        "GL3A": ["Lab 3"],
+        "GL4A": ["Lab 4"],
+        "GEA": ["Exam 1", "Exam 2", "Exam 3", "Exam 4"]
+    }
+
     def __init__(self):
-        # todo: read the csv
+        self.load_grades()
         self.create_listen_socket()
         self.process_connections_forever()
 
@@ -74,6 +86,15 @@ class Server:
             self.socket.close()
             sys.exit(1)
 
+    def load_grades(self):
+        reader = csv.DictReader('course_grades_2023.csv')
+        self.grades_data = dict()
+        self.student_count = 0
+
+        for row in reader:
+            self.grades_data[row['ID Number']] = row
+            self.student_count += 1
+
     def connection_handler(self, client):
         # Unpack the client socket address tuple.
         connection, address_port = client
@@ -103,14 +124,21 @@ class Server:
                 recvd_str = recvd_bytes.decode(Server.MSG_ENCODING)
                 print("Received: ", recvd_str)
 
-                data_entry = self.service(recvd_str)
+                data_entry, encryption_key = None, None
 
-                # todo: encrypt data_entry
+                try:
+                    data_entry, encryption_key = self.service(recvd_str)
+                except:
+                    connection.send("Access Denied".encode(Server.MSG_ENCODING))
+
+                # Done_todo: encrypt data_entry
+                fernet = Fernet(encryption_key.encode('utf-8'))
+                Encrypted_data_entry= fernet.encrypt(data_entry.encode(Server.MSG_ENCODING))
                 
                 # Send the received bytes back to the client. We are
                 # sending back the raw data.
-                connection.sendall(recvd_bytes)
-                print("Sent: ", recvd_str)
+                connection.sendall(Encrypted_data_entry)
+                print("Sent: ", data_entry)
 
             except KeyboardInterrupt:
                 print()
@@ -120,9 +148,27 @@ class Server:
 
     # Processes command and returns requested data
     def service(self, cmd):
-        # todo: parse command
-        # todo: retrieve needed data
-        # todo: process data as needed
+        # parse command
+        # parsed_cmd format: [STUDENT_ID, OPERATION]
+        parsed_cmd = cmd.split()
 
-        # todo: return result
-        return
+        # check if student is authorized
+        if not (parsed_cmd[0] in self.grades_data):
+            raise Exception("Access Denied. Student number invalid.")
+
+        # retrieve needed data
+        if parsed_cmd[1] == "GG":
+            return json.dumps(self.grades_data[parsed_cmd[0]]), self.grades_data[parsed_cmd[0]]['Key']
+        
+        # process data as needed
+        return str(self.get_grade_average(parsed_cmd[1])), self.grades_data[parsed_cmd[0]]['Key']
+    
+    def get_grade_average(self, cmd_op):
+        grade_tally = 0
+        columns = Server._OPS_TO_COLUMN_NAME[cmd_op]
+
+        for student_entry in self.grades_data:
+            for col in columns:
+                grade_tally += student_entry[col]
+
+        return grade_tally/(self.student_count * len(columns))

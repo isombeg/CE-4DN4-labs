@@ -1,5 +1,6 @@
 import socket
 import sys
+from cryptography.fernet import Fernet
 
 from server import Server
 
@@ -26,7 +27,9 @@ class Client:
         self.get_socket()
         self.connect_to_server()
         # todo: replace function with one that sends once then closes connection
-        self.send_console_input_forever()
+        #self.send_console_input_forever()
+        #done
+        self.send_console_input_once()
 
     def get_socket(self):
         try:
@@ -60,19 +63,33 @@ class Client:
                 break
     
     # todo: write a version of this function that only sends input once and then closes connection
-    def send_console_input_forever(self):
-        while True:
-            try:
-                self.get_console_input()
-                self.connection_send()
-                self.connection_receive()
-            except (KeyboardInterrupt, EOFError):
-                print()
-                print("Closing server connection ...")
-                # If we get and error or keyboard interrupt, make sure
-                # that we close the socket.
-                self.socket.close()
-                sys.exit(1)
+    #done
+    def send_console_input_once(self):
+        try:
+            self.get_console_input()
+            self.connection_send()
+            self.connection_receive()
+        except (KeyboardInterrupt, EOFError):
+            print()
+            print("Closing server connection ...")
+            # If we get and error or keyboard interrupt, make sure
+            # that we close the socket.
+            self.socket.close()
+            sys.exit(1)
+
+    # def send_console_input_forever(self):
+    #     while True:
+    #         try:
+    #             self.get_console_input()
+    #             self.connection_send()
+    #             self.connection_receive()
+    #         except (KeyboardInterrupt, EOFError):
+    #             print()
+    #             print("Closing server connection ...")
+    #             # If we get and error or keyboard interrupt, make sure
+    #             # that we close the socket.
+    #             self.socket.close()
+    #             sys.exit(1)
                 
     def connection_send(self):
         try:
@@ -99,7 +116,11 @@ class Client:
                 sys.exit(1)
 
             # todo: modify this to decrypt string from the bytes before printing (SEE assignment doc)
-            print("Received: ", recvd_bytes.decode(Server.MSG_ENCODING))
+            # ?: Appropriate way of getting the key for decryption (since we can't grab it from the .csv)
+            decrypted_message_bytes =self.fernet.decrypt(recvd_bytes)
+            decrypted_message = decrypted_message_bytes.decode('utf-8')
+            print("decrypted_message = ", decrypted_message)
+            #print("Received: ", recvd_bytes.decode(Server.MSG_ENCODING))
 
         except Exception as msg:
             print(msg)
