@@ -61,6 +61,8 @@ class Client:
             self.input_text = input("Input: ")
             if self.input_text != "":
                 break
+            print(f"Command entered: {self.input_text}")
+            # todo: print message explaining command verbosely (i.e. Requirement 3)
     
     # todo: write a version of this function that only sends input once and then closes connection
     #done

@@ -122,14 +122,8 @@ class Server:
                 # Decode the received bytes back into strings. Then output
                 # them.
                 recvd_str = recvd_bytes.decode(Server.MSG_ENCODING)
-                print("Received: ", recvd_str)
 
-                data_entry, encryption_key = None, None
-
-                try:
-                    data_entry, encryption_key = self.service(recvd_str)
-                except:
-                    connection.send("Access Denied".encode(Server.MSG_ENCODING))
+                data_entry, encryption_key = self.service(recvd_str)
 
                 # Done_todo: encrypt data_entry
                 fernet = Fernet(encryption_key.encode('utf-8'))
@@ -146,15 +140,24 @@ class Server:
                 connection.close()
                 break
 
+            except UserNotFoundError as err:
+                print(err)
+                print("Closing client connection ...")
+                connection.close()
+                break
+
     # Processes command and returns requested data
     def service(self, cmd):
         # parse command
         # parsed_cmd format: [STUDENT_ID, OPERATION]
         parsed_cmd = cmd.split()
 
+        print(f"Received {parsed_cmd[1]} command from client")
+
         # check if student is authorized
         if not (parsed_cmd[0] in self.grades_data):
-            raise Exception("Access Denied. Student number invalid.")
+            raise UserNotFoundError("User not found")
+        print("User found")
 
         # retrieve needed data
         if parsed_cmd[1] == "GG":
@@ -172,3 +175,8 @@ class Server:
                 grade_tally += student_entry[col]
 
         return grade_tally/(self.student_count * len(columns))
+    
+class UserNotFoundError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+        self.message = message
