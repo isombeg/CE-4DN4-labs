@@ -22,6 +22,7 @@ class Client:
 
     # RECV_BUFFER_SIZE = 5 # Used for recv.    
     RECV_BUFFER_SIZE = 1024 # Used for recv.
+    # todo: add student keys dict
 
     def __init__(self):
         self.get_socket()
@@ -118,7 +119,6 @@ class Client:
                 sys.exit(1)
 
             # todo: modify this to decrypt string from the bytes before printing (SEE assignment doc)
-            # ?: Appropriate way of getting the key for decryption (since we can't grab it from the .csv)
             decrypted_message_bytes =self.fernet.decrypt(recvd_bytes)
             decrypted_message = decrypted_message_bytes.decode('utf-8')
             print("decrypted_message = ", decrypted_message)
