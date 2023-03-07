@@ -87,13 +87,18 @@ class Server:
             sys.exit(1)
 
     def load_grades(self):
-        reader = csv.DictReader('course_grades_2023.csv')
+        csvfile = open('course_grades_2023.csv', 'r')
+        reader = csv.DictReader(csvfile)
         self.grades_data = dict()
+        self.encryption_keys = dict()
         self.student_count = 0
 
         for row in reader:
+            self.encryption_keys[row['ID Number']] = row.pop('Key')
             self.grades_data[row['ID Number']] = row
             self.student_count += 1
+        
+        csvfile.close()
 
     def connection_handler(self, client):
         # Unpack the client socket address tuple.
@@ -161,18 +166,19 @@ class Server:
 
         # retrieve needed data
         if parsed_cmd[1] == "GG":
-            return json.dumps(self.grades_data[parsed_cmd[0]]), self.grades_data[parsed_cmd[0]]['Key']
+            return json.dumps(self.grades_data[parsed_cmd[0]]), self.encryption_keys[parsed_cmd[0]]
         
         # process data as needed
-        return str(self.get_grade_average(parsed_cmd[1])), self.grades_data[parsed_cmd[0]]['Key']
+        return str(self.get_grade_average(parsed_cmd[1])), self.encryption_keys[parsed_cmd[0]]
     
     def get_grade_average(self, cmd_op):
         grade_tally = 0
         columns = Server._OPS_TO_COLUMN_NAME[cmd_op]
 
-        for student_entry in self.grades_data:
+        for id in self.grades_data:
+            # print(f"student_entry: {student_entry}")
             for col in columns:
-                grade_tally += student_entry[col]
+                grade_tally += int(self.grades_data[id][col])
 
         return grade_tally/(self.student_count * len(columns))
     
