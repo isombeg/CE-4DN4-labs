@@ -504,8 +504,8 @@ class Client:
             self.tcp_socket.connect((self.parsed_cmd[1], int(self.parsed_cmd[2])))
         except IndexError:
             print(f"Expected 2 arguments. Received {len(self.parsed_cmd[1:])}")
-        except Exception as msg:
-            print(msg)
+        # except Exception as msg:
+        #     print(msg)
 
     def construct_ft_header_pkt(self):
         cmd = self.parsed_cmd[0]
