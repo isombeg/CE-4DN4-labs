@@ -127,9 +127,6 @@ def send_file_contents(connection, dir_path, filename, header = b''):
         print("Closing client connection ...")
         connection.close()
         return
-    finally:
-        connection.close()
-        return
 
 def recv_file(socket, dir_path, filename):
     # Process the file transfer repsonse from the server
@@ -322,12 +319,12 @@ class Server:
         for client in current_client_list:
             connection, address_port = client
             try:
-                status, cmd_field = recv_bytes(connection, CMD_FIELD_LEN)
+                cmd_field = connection.recv(CMD_FIELD_LEN)
                 # If the read fails, give up.
-                if not status:
-                    print(f"Read failed. Closing connection {address_port} ...")
-                    self.remove_client(client)
-                    return
+                if len(cmd_field) == 0:
+                    print(f"Received nothing. Passing on {address_port} ...")
+                    # self.remove_client(client)
+                    continue
                 # Execute clients command.
                 self.handle_client_command(connection, cmd_field)
                 
@@ -485,6 +482,9 @@ class Client:
                 "
             )
 
+        except socket.error:
+            print("Server socket closed. Can't execute command")
+
     def handle_scan_cmd(self):
         try:
             # broadcast 'SERVICE DISCOVERY' message
@@ -504,8 +504,8 @@ class Client:
             self.tcp_socket.connect((self.parsed_cmd[1], int(self.parsed_cmd[2])))
         except IndexError:
             print(f"Expected 2 arguments. Received {len(self.parsed_cmd[1:])}")
-        except Exception as msg:
-            print(msg)
+        # except Exception as msg:
+        #     print(msg)
 
     def construct_ft_header_pkt(self):
         cmd = self.parsed_cmd[0]
@@ -570,8 +570,6 @@ class Client:
         # Send the request packet to the server
         self.tcp_socket.sendall(cmd_field)
 
-        # Close the connection
-        self.tcp_socket.close()
 
             
 ########################################################################
