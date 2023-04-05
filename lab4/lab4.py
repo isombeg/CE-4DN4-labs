@@ -469,6 +469,17 @@ class Client:
         
         # todo: change to only make udp socket upon joining chat
         #self.get_socket()
+    def get_socket(self):
+
+        try:
+            if  not self.input_queue.empty():
+                self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                # Arrange to send a broadcast service discovery packet.
+                self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        except Exception as msg:
+            print(msg)
+            exit()
 
         # todo: move this to only when client joins chat room
         # self.receive_forever()
@@ -553,6 +564,7 @@ class Client:
             addr_port_list = self.send_only_cmd_field("chat").split("/")
             self.get_multicast_socket(addr_port_list[0], int(addr_port_list[1]))
             self.chat()
+            #self.send_forever()
 
         
         except Exception as msg:
@@ -580,29 +592,35 @@ class Client:
             # Wait for a short amount of time before checking the queues again
             time.sleep(0.1)
             pass
+    def get_input(input_queue):
+        while True:
+            user_input = input("Console:> ")
+            input_queue.put(user_input)
+            # Clear the console after reading the user input
+            print("\033[H\033[J", end='')
     
     def send_forever(self):
         self.beacon_sequence_number = 1
         input = self.get_input()
-        self.send_message(input)
+        self.send_messages(input)
 
     def send_messages(self):
         try:
-            beacon_bytes = Sender.MESSAGE_ENCODED + str(beacon_sequence_number).encode('utf-8')
+            beacon_bytes = Client.MESSAGE_ENCODED + str(self.beacon_sequence_number).encode('utf-8')
 
             ########################################################
             # Send the multicast packet
-            self.socket.sendto(beacon_bytes, MULTICAST_ADDRESS_PORT)
+            socket.sendto(beacon_bytes, MULTICAST_ADDRESS_PORT)
 
             # Sleep for a while, then send another.
-            time.sleep(Sender.TIMEOUT)
-            beacon_sequence_number += 1
+            time.sleep(Client.TIMEOUT)
+            self.beacon_sequence_number += 1
         except Exception as msg:
             print(msg)
         except KeyboardInterrupt:
             print()
         finally:
-            self.socket.close()
+            socket.close()
             sys.exit(1)
 
     def receive_forever(self):
