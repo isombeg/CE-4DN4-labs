@@ -13,7 +13,7 @@ import ipaddress
 # Multicast Address and Port
 ########################################################################
 
-MULTICAST_ADDRESS = "239.0.0.10"
+MULTICAST_ADDRESS = "239.5.5.10"
 # MULTICAST_ADDRESS = "239.0.0.11"
 MULTICAST_PORT    =  2000
 
